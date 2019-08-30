@@ -1,0 +1,49 @@
+--name:优速贷查询
+--author:cq.zan
+--create time:2019-08-30 09:34
+select  bi.certid
+        ,bi.customerid
+        ,bi.customername
+        ,at.antifraud_hit_rule
+        ,at.risk_advice
+        ,bi.approvestatus
+        ,bi.pushtime
+        ,at.create_time
+from (
+  select i.customerid
+          ,i.certid
+          ,b.customername
+          ,b.pushtime
+          ,b.occurdate
+          ,b.businesssum
+          ,b.businessterm
+          ,b.approvestatus
+          ,b.systemchannelflag
+  from   business_apply b
+  left join ind_info i
+  on     b.customerid=i.customerid
+  where b.occurdate>'2019/08/01'
+  and    b.businesstype='8'
+  and    i.pt='20190829'
+  and    b.pt='20190829'
+ ) as bi
+--mysql两表合并
+left join (
+  select t.order_id
+          ,a.create_time
+          ,a.identity_card
+          ,t.antifraud_hit_rule
+          ,t.antifraud_hit_result
+          ,t.antifraud_hit_rule_result
+          ,t.score_level
+          ,t.risk_advice
+          ,t.flow_advice
+  from   task_result t
+  join   app_task  a
+  on      t.order_id=a.order_id
+  where   a.create_time>'1564588800000'
+  and     t.pt='20190829'
+  and     a.pt='20190829'
+) as at
+--mongo两表合并
+on at.identity_card=bi.certid;
