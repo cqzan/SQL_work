@@ -1,0 +1,98 @@
+--name:ysd逾期率查询
+--author:cq.zan
+--create time:2019-07-20 09:34
+
+SELECT
+case when l.businesstype IN ('8') then "***" END 产品类型,
+	l.contractserialno,
+	l.customerid,
+	l.putoutdate,
+	l.businesstype,
+	l.businesssum,
+	l.loanstatus,
+	ls.itemname,
+	l.overduedays,
+	l.overduelevel,
+	b.期数,
+	a.应还金额,
+	b.实还金额,
+	round(
+
+		IF (
+			a.应还金额 - b.实还金额 < 0,
+			0,
+			a.应还金额 - b.实还金额
+		),
+		2
+	) 逾期本金,
+	round(
+		l.businesssum -
+		IF (
+			b.实还金额 IS NULL,
+			0,
+			b.实还金额
+		),
+		2
+	) 本金余额
+FROM
+	acct_loan l
+LEFT JOIN (
+	SELECT
+		al.contractserialno,
+		sum(aps.payprincipalamt) 应还金额
+	FROM
+		acct_loan al,
+		acct_payment_schedule aps
+	WHERE
+		al.businesstype IN ('8')
+	AND aps.pstype = '1'
+	AND aps.objecttype = 'jbo.acct.ACCT_LOAN'
+	AND al.serialno = aps.objectno
+	AND aps.paydate <= '2019/07/31'
+	AND al.putoutdate <= '2019/07/31'
+	GROUP BY
+		al.contractserialno
+) a ON l.contractserialno = a.contractserialno   ##############a表
+LEFT JOIN (
+	SELECT
+		al.contractserialno,
+
+	IF (
+		al.loanstatus < '2',
+		sum(aps.actualpayprincipalamt),
+		al.businesssum
+	) 实还金额,
+	max(aps.periodno) 期数
+FROM
+	acct_payment_schedule aps,
+	acct_loan al
+LEFT JOIN (
+	SELECT
+		itemno,
+		itemname
+	FROM
+		code_library
+	WHERE
+		codeno = 'LoanStatus'
+) ls ON al.loanstatus = ls.itemno
+WHERE
+	al.businesstype IN ('8')
+AND aps.pstype = '1'
+AND aps.objecttype = 'jbo.acct.ACCT_LOAN'
+AND al.serialno = aps.objectno
+AND al.putoutdate <= '2019/07/31'
+GROUP BY
+	al.contractserialno
+) b ON l.contractserialno = b.contractserialno    ##############b表
+LEFT JOIN (
+	SELECT
+		itemno,
+		itemname
+	FROM
+		code_library
+	WHERE
+		codeno = 'LoanStatus'
+) ls ON l.loanstatus = ls.itemno
+WHERE
+	l.businesstype IN ('8')
+AND l.putoutdate <= '2019/07/31'
