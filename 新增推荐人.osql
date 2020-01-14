@@ -1,0 +1,59 @@
+#新增推荐人数量
+SELECT
+occurdate    申请日期,
+operateusername    新增推荐人姓名,
+operateusertelephone    新增推荐人手机,
+        count(customerid)    推荐客户数量
+FROM
+business_apply
+WHERE
+businesstype    =    6
+AND    operateusername    IS    NOT    NULL
+AND    operateusername    <>    ''
+AND    occurdate  =DATE_SUB(CURDATE(),    INTERVAL    1    DAY)  
+AND    operateusertelephone    IN    (
+SELECT    DISTINCT
+(operateusertelephone)
+FROM
+business_apply
+WHERE
+businesstype    =    6
+AND    operateusername    IS    NOT    NULL
+AND    operateusername    <>    ''
+AND    DATE_SUB(CURDATE(),    INTERVAL    1    DAY)    =    occurdate 
+AND    occurdate    <>    DATE(CURDATE())
+AND    operateusertelephone    NOT    IN    (
+SELECT    DISTINCT
+(operateusertelephone)
+FROM
+business_apply
+WHERE
+businesstype    =    6
+AND    operateusername    IS    NOT    NULL
+AND    operateusername    <>    ''
+AND    occurdate    BETWEEN    '2011/02/18'
+AND    (
+SELECT
+MIN(A.occurdate)
+FROM
+(
+SELECT    DISTINCT
+(occurdate)    AS    'occurdate',
+operateusername,
+operateusertelephone
+FROM
+business_apply
+WHERE
+businesstype    =    6
+AND    operateusername    IS    NOT    NULL
+AND    operateusername    <>    ''
+AND    DATE_SUB(CURDATE(),    INTERVAL    2    DAY)    <=    occurdate
+AND    occurdate    <>    DATE(CURDATE())
+)    AS    A
+)
+)
+)
+group    by    
+occurdate,
+operateusername,
+operateusertelephone  
